@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恭喜你，完成今日成长任务</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #FFF9E3;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 100%;
+            margin: auto;
+            background: #FFFFFF;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #DAA520;
+            font-size: 2em;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tabs button {
+            padding: 10px 20px;
+            background: #F0E68C;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 15px;
+            font-size: 1em;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        .tabs button:hover {
+            background: #DAA520;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .diary-entry {
+            margin-bottom: 20px;
+        }
+        .diary-entry textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 1px solid #F0E68C;
+            border-radius: 15px;
+            resize: none;
+            background-color: #FFF9E3;
+        }
+        .button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: #DAA520;
+            color: white;
+            border: none;
+            text-align: center;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 15px;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #FFD700;
+        }
+        .entries {
+            margin-top: 20px;
+        }
+        .entry {
+            background: #FFF9E3;
+            padding: 10px;
+            border: 1px solid #F0E68C;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+        .entry p {
+            margin: 0;
+        }
+        .entry .date {
+            font-size: 0.9em;
+            color: #666;
+        }
+        #calendar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            border: 1px solid #F0E68C;
+            border-radius: 15px;
+            padding: 10px;
+            background: #FFFFFF;
+        }
+        .day {
+            width: calc(100% / 7 - 10px);
+            margin: 5px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 15px;
+            transition: background 0.3s;
+            background: #FFFACD;
+        }
+        .day.recorded {
+            background: #DAA520;
+            color: white;
+        }
+        .day:hover {
+            background: #FFD700;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>恭喜你，完成今日成长任务</h1>
+    <div class="tabs">
+        <button onclick="openTab('diary')">日记板块</button>
+        <button onclick="openTab('growth')">成长板块</button>
+        <button onclick="openTab('calendar')">日历板块</button>
+    </div>
+    <div id="diary" class="tab-content">
+        <div class="diary-entry">
+            <textarea id="diaryText" placeholder="在这里写下您的日记..."></textarea>
+            <button class="button" onclick="addEntry('diary')">保存日记</button>
+        </div>
+        <div id="diaryEntries" class="entries"></div>
+    </div>
+    <div id="growth" class="tab-content">
+        <div class="diary-entry">
+            <textarea id="growthText" placeholder="在这里写下您的成长记录..."></textarea>
+            <button class="button" onclick="addEntry('growth')">保存成长记录</button>
+        </div>
+        <div id="growthEntries" class="entries"></div>
+    </div>
+    <div id="calendar" class="tab-content"></div>
+</div>
+
+<script>
+    // 清除之前的记录
+    localStorage.removeItem('diaryEntries');
+    localStorage.removeItem('growthEntries');
+
+    function openTab(tabName) {
+        const tabs = document.querySelectorAll('.tab-content');
+        tabs.forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.getElementById(tabName).classList.add('active');
+        if (tabName === 'calendar') {
+            renderCalendar();
+        }
+    }
+
+    function addEntry(tabName) {
+        const text = document.getElementById(tabName + 'Text').value;
+        if (text.trim() === '') {
+            alert('请填写内容。');
+            return;
+        }
+
+        const date = new Date();
+        const dateString = date.toISOString().split('T')[0];
+
+        const entry = {
+            text: text,
+            date: date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            })
+        };
+
+        const entries = JSON.parse(localStorage.getItem(tabName + 'Entries')) || {};
+        if (!entries[dateString]) {
+            entries[dateString] = [];
+        }
+        entries[dateString].unshift(entry);
+        localStorage.setItem(tabName + 'Entries', JSON.stringify(entries));
+
+        displayEntries(tabName);
+
+        document.getElementById(tabName + 'Text').value = '';
+    }
+
+    function displayEntries(tabName) {
+        const entries = JSON.parse(localStorage.getItem(tabName + 'Entries')) || {};
+        const entriesDiv = document.getElementById(tabName + 'Entries');
+        entriesDiv.innerHTML = '';
+
+        for (const date in entries) {
+            entries[date].forEach(entry => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'entry';
+                entryDiv.innerHTML = `<p>${entry.text}</p><p class="date">${entry.date}</p>`;
+                entriesDiv.appendChild(entryDiv);
+            });
+        }
+    }
+
+    function renderCalendar() {
+        const calendarDiv = document.getElementById('calendar');
+        calendarDiv.innerHTML = '';
+
+        const currentDate = new Date();
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'day';
+            calendarDiv.appendChild(emptyDiv);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'day';
+            dayDiv.textContent = day;
+            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            dayDiv.onclick = () => displayEntriesForDate(dateString);
+            
+            const diaryEntries = JSON.parse(localStorage.getItem('diaryEntries')) || {};
+            const growthEntries = JSON.parse(localStorage.getItem('growthEntries')) || {};
+            if (diaryEntries[dateString] || growthEntries[dateString]) {
+                dayDiv.classList.add('recorded');
+            }
+            calendarDiv.appendChild(dayDiv);
+        }
+    }
+
+    function displayEntriesForDate(dateString) {
+        const diaryEntries = JSON.parse(localStorage.getItem('diaryEntries')) || {};
+        const growthEntries = JSON.parse(localStorage.getItem('growthEntries')) || {};
+
+        const entriesDiv = document.getElementById('calendar');
+        entriesDiv.innerHTML = '';
+
+        if (diaryEntries[dateString]) {
+            const diaryHeader = document.createElement('h2');
+            diaryHeader.textContent = `日记 - ${dateString}`;
+            entriesDiv.appendChild(diaryHeader);
+            diaryEntries[dateString].forEach(entry => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'entry';
+                entryDiv.innerHTML = `<p>${entry.text}</p><p class="date">${entry.date}</p>`;
+                entriesDiv.appendChild(entryDiv);
+            });
+        }
+
+        if (growthEntries[dateString]) {
+            const growthHeader = document.createElement('h2');
+            growthHeader.textContent = `成长记录 - ${dateString}`;
+            entriesDiv.appendChild(growthHeader);
+            growthEntries[dateString].forEach(entry => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'entry';
+                entryDiv.innerHTML = `<p>${entry.text}</p><p class="date">${entry.date}</p>`;
+                entriesDiv.appendChild(entryDiv);
+            });
+        }
+    }
+
+    // 初始化显示
+    function init() {
+        openTab('diary');
+        displayEntries('diary');
+        displayEntries('growth');
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
